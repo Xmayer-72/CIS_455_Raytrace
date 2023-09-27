@@ -1,0 +1,26 @@
+{
+    "files.associations": {
+        "cctype": "cpp",
+        "cmath": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "cstdarg": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cwchar": "cpp",
+        "type_traits": "cpp",
+        "limits": "cpp",
+        "new": "cpp",
+        "*.tcc": "cpp",
+        "cinttypes": "cpp",
+        "cstdint": "cpp",
+        "typeinfo": "cpp"
+    },
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/conrad/Documents/CIS-455/Raytrace_Proj",
+            "binaryPath": "/home/conrad/Documents/CIS-455/Raytrace_Proj/Raytrace",
+            "binaryArgs": []
+        }
+    ]
+}
