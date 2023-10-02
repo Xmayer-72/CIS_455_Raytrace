@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include <cmath>
 #include "Vec.h"
 #include "Plane.h"
 
@@ -45,6 +46,9 @@ inline vec3f compute_triangle_normal( const vec3f& v0, const vec3f& v1, const ve
     return compute_cross_product( v0_v1, v0_v2 ) ;
 }
 
+inline float compute_vector_length(const vec3f& v){
+    return std::sqrt(compute_dot_product(v, v));
+}
 constexpr float pi = 3.14159265359;
 
 constexpr float square_root_of_two = 1.41421356237;

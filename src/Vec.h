@@ -25,12 +25,32 @@ public:
         return {a.x + b.x, a.y + b.y, a.z + b.z};
     }
 
+    friend vec3<T> operator+=( const vec3<T>& a, const vec3<T>& b){
+        return a + b;
+    }
+
     friend vec3<T> operator*( const vec3<T>& a, const vec3<T>& b){
         return {a.x * b.x, a.y * b.y, a.z * b.z};
     }
 
+    friend vec3<T> operator*=( const vec3<T>& a, const vec3<T>& b){
+        return a * b;
+    }
+
     friend vec3<T> operator*( T a, const vec3<T>& b){
         return {a * b.x, a * b.y, a * b.z};
+    }
+
+    friend vec3<T> operator*(const vec3<T>& b, T a){
+        return a*b;
+    }
+
+    friend vec3<T> operator*=( T a, const vec3<T>& b){
+        return a*b;
+    }
+
+    friend vec3<T> operator/(const vec3<T>& b, T a){
+        return {b.x / a, b.y / a, b.z / a};
     }
 
     friend vec3<T> operator-( const vec3<T>& a){

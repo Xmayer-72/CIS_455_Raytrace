@@ -8,6 +8,7 @@
 #include "Sphere.h"
 #include "CanvasBase.h"
 #include "Misc.h"
+#include "Light.h"
 
 class RaytracingCanvas final : public CanvasBase
 {
@@ -16,7 +17,8 @@ private:
     static constexpr float projection_plane_z   = 1.0;
 
     std::vector<Sphere> _spheres;
-    std::vector<Color> _sphere_colors;
+    std::vector<Color>  _sphere_colors;
+    std::vector<Light>  _lights;
 
     vec3f canvas_to_viewport(const vec2i& pt) const{
         return{
@@ -24,6 +26,53 @@ private:
             static_cast<float>(pt.y) * viewport_size / static_cast<float>(_height),
             projection_plane_z
         };
+    }
+
+    vec3f compute_lighting(const vec3f& point, const vec3f& normal) const{
+        vec3f color_intenstiy{0.0f, 0.0f, 0.0f};
+
+        for (auto& light : _lights)
+        {
+            if(light.light_type == Light::LightType::Ambient){
+                color_intenstiy.x += light.color_intensity.x;
+                color_intenstiy.y += light.color_intensity.y;
+                color_intenstiy.z += light.color_intensity.z;
+            }
+            else{
+                auto vec_l = light.position; //getting pos / dir
+
+                if (light.light_type == Light::LightType::Point){
+                    vec_l = vec_l - point;
+                }
+
+                auto n_dot_l = compute_dot_product(normal, vec_l);
+
+                if (n_dot_l > 0){
+                    color_intenstiy.x += light.color_intensity.x * n_dot_l / compute_vector_length(vec_l);
+                    color_intenstiy.y += light.color_intensity.y * n_dot_l / compute_vector_length(vec_l);
+                    color_intenstiy.z += light.color_intensity.z * n_dot_l / compute_vector_length(vec_l);
+                }
+            }
+        }
+
+        return color_intenstiy;        
+    }
+
+    static Color combine_color_and_intensity(const Color& color, vec3f& intensity){
+        auto r_uint = static_cast<unsigned int>(static_cast<float>(color.r) * intensity.x);
+        auto g_uint = static_cast<unsigned int>(static_cast<float>(color.g) * intensity.y);
+        auto b_uint = static_cast<unsigned int>(static_cast<float>(color.b) * intensity.z);
+
+        r_uint = r_uint < 0 ? 0: r_uint > 255 ? 255: r_uint;
+        g_uint = g_uint < 0 ? 0: g_uint > 255 ? 255: g_uint;
+        b_uint = b_uint < 0 ? 0: b_uint > 255 ? 255: b_uint;
+        
+
+        return Color::custom(
+            static_cast<uint8_t>(r_uint),
+            static_cast<uint8_t>(g_uint),
+            static_cast<uint8_t>(b_uint)
+            );
     }
 
     Color trace_ray(const vec3f& camera_pos, const vec3f& ray_dir, float min_t) const{
@@ -54,7 +103,18 @@ private:
             return Color::black;
         }
 
-        return _sphere_colors[closest_sphere_index];          
+        auto point = camera_pos + closest_t * ray_dir;
+
+        auto normal = point - _spheres[closest_sphere_index].center;
+        normal = normal / compute_vector_length(normal); 
+
+        auto intensity = compute_lighting(point, normal);
+
+        auto color = combine_color_and_intensity(
+            _sphere_colors[closest_sphere_index],
+            intensity);
+
+        return color;
     }
 
     static bool instersect_ray_sphere(const vec3f& camera_pos, 
@@ -88,6 +148,10 @@ public:
     void add_sphere(const Sphere& sphere, const Color& color){
         _spheres.push_back(sphere);
         _sphere_colors.push_back(color);
+    }
+
+    void add_light(const Light& light){
+        _lights.push_back(light);
     }
 
     void draw() const{
