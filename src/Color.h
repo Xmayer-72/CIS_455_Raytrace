@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "Vec.h"
+
 // Found the list of 48 named colors at:
 //   https://simple.wikipedia.org/wiki/Template:Web_colors
 
@@ -61,9 +63,36 @@ public:
     const uint8_t g ;
     const uint8_t b ;
 
-    static Color custom( uint8_t r, uint8_t g, uint8_t b )
+    static Color custom( unsigned int r, unsigned int g, unsigned int b )
     {
-        return { r, g, b } ;
+        uint8_t r_uint8 = r < 0 ? 0 : r > 255 ? 255 : r;
+        uint8_t g_uint8 = g < 0 ? 0 : g > 255 ? 255 : g;
+        uint8_t b_uint8 = b < 0 ? 0 : b > 255 ? 255 : b;
+        return { r_uint8, g_uint8, b_uint8 } ;
+    }
+
+    friend Color operator*(const Color& color, const vec3f& intensity){
+        auto r_uint = static_cast<unsigned int>(static_cast<float>(color.r) * intensity.x);
+        auto g_uint = static_cast<unsigned int>(static_cast<float>(color.g) * intensity.y);
+        auto b_uint = static_cast<unsigned int>(static_cast<float>(color.b) * intensity.z);
+
+        return custom(r_uint, g_uint, b_uint);
+    }
+
+    friend Color operator*(const Color& color, float intensity){
+        auto r_uint = static_cast<unsigned int>(static_cast<float>(color.r) * intensity);
+        auto g_uint = static_cast<unsigned int>(static_cast<float>(color.g) * intensity);
+        auto b_uint = static_cast<unsigned int>(static_cast<float>(color.b) * intensity);
+
+        return custom(r_uint, g_uint, b_uint);
+    }
+
+    friend Color operator+(const Color& c1, const Color& c2){
+        return custom(
+            c1.r + c2.r,
+            c1.g + c2.g,
+            c1.b + c2.b
+        );
     }
 
 private:

@@ -17,5 +17,5 @@ public:
         :   light_type(light_type),
             color_intensity(intensity),
             position(position){
-    }
+        }
 };

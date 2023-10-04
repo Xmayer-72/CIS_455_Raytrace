@@ -58,23 +58,6 @@ private:
         return color_intenstiy;        
     }
 
-    static Color combine_color_and_intensity(const Color& color, vec3f& intensity){
-        auto r_uint = static_cast<unsigned int>(static_cast<float>(color.r) * intensity.x);
-        auto g_uint = static_cast<unsigned int>(static_cast<float>(color.g) * intensity.y);
-        auto b_uint = static_cast<unsigned int>(static_cast<float>(color.b) * intensity.z);
-
-        r_uint = r_uint < 0 ? 0: r_uint > 255 ? 255: r_uint;
-        g_uint = g_uint < 0 ? 0: g_uint > 255 ? 255: g_uint;
-        b_uint = b_uint < 0 ? 0: b_uint > 255 ? 255: b_uint;
-        
-
-        return Color::custom(
-            static_cast<uint8_t>(r_uint),
-            static_cast<uint8_t>(g_uint),
-            static_cast<uint8_t>(b_uint)
-            );
-    }
-
     Color trace_ray(const vec3f& camera_pos, const vec3f& ray_dir, float min_t) const{
         auto closest_t = std::numeric_limits<float>::max();
         auto closest_sphere_index = -1;
@@ -110,9 +93,7 @@ private:
 
         auto intensity = compute_lighting(point, normal);
 
-        auto color = combine_color_and_intensity(
-            _sphere_colors[closest_sphere_index],
-            intensity);
+        auto color = _sphere_colors[closest_sphere_index] * intensity;
 
         return color;
     }
