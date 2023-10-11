@@ -10,17 +10,22 @@
 #include "CanvasBase.h"
 #include "Misc.h"
 #include "Light.h"
+#include "Mat.h"
 
 class RaytracingCanvas final : public CanvasBase
 {
 private:
-    static constexpr float viewport_size        = 1.0;
-    static constexpr float projection_plane_z   = 1.0;
+    static constexpr float  viewport_size        = 1.0;
+    static constexpr float  projection_plane_z   = 1.0;
 
-    std::vector<Sphere> _spheres;
-    std::vector<Color>  _sphere_colors;
-    std::vector<Light>  _lights;
-    std::vector<float>  _sphere_speculars;
+    vec3f                   _camera_position;
+    Mat                     _camera_orientation;
+    unsigned int            _max_ray_recursion;
+    std::vector<Sphere>     _spheres;
+    std::vector<Color>      _sphere_colors;
+    std::vector<Light>      _lights;
+    std::vector<float>      _sphere_speculars;
+    std::vector<float>      _sphere_reflectivities;
 
     vec3f canvas_to_viewport(const vec2i& pt) const{
         return{
@@ -66,7 +71,7 @@ private:
                 }
 
                 //specular
-                auto vec_r = ((2.0f * compute_dot_product(normal, vec_l)) * normal) - vec_l;
+                auto vec_r = reflect_ray(normal, vec_l);
 
                 auto r_dot_v = compute_dot_product(vec_r, -1 * ray_dir);
 
@@ -83,27 +88,48 @@ private:
         return color_intenstiy;        
     }
 
-    Color trace_ray(const vec3f& camera_pos, const vec3f& ray_dir, float min_t) const{
+    static vec3f reflect_ray(const vec3f& normal, const vec3f& ray){
+        return ((2.0f * compute_dot_product(normal, ray)) * normal) - ray;
+    }
+
+    Color trace_ray(const vec3f& camera_pos, const vec3f& ray_dir, float min_t, unsigned int recursion_depth) const{
         auto intersection = find_closest_sphere_intersection(
             camera_pos, ray_dir, min_t, std::numeric_limits<float>::max());
         
         auto closest_sphere_index = std::get<0>(intersection);
-        auto closest_t = std::get<1>(intersection);
+        auto closest_t =            std::get<1>(intersection);
 
         if (closest_sphere_index < 0){
             return Color::black;
         }
 
+        auto sphere =               _spheres                [closest_sphere_index];
+        auto sphere_color =         _sphere_colors          [closest_sphere_index];
+        auto sphere_specular =      _sphere_speculars       [closest_sphere_index];
+        auto sphere_reflectivity =  _sphere_reflectivities  [closest_sphere_index];
+
         auto point = camera_pos + closest_t * ray_dir;
 
-        auto normal = point - _spheres[closest_sphere_index].center;
+        auto normal = point - sphere.center;
         normal = normal / compute_vector_length(normal); 
 
-        auto intensity = compute_lighting(point, normal, ray_dir, _sphere_speculars[closest_sphere_index]);
+        auto intensity = compute_lighting(point, normal, ray_dir, sphere_specular);
 
-        auto color = _sphere_colors[closest_sphere_index] * intensity;
+        auto local_color = sphere_color * intensity;
 
-        return color;
+        if (sphere_reflectivity <= 0.0f || recursion_depth <= 0)
+        {
+            return local_color;
+        }
+        
+        auto reflected_ray = reflect_ray(normal, -ray_dir);
+
+        auto reflected_color = trace_ray(point, reflected_ray, 0.01f, recursion_depth - 1);
+
+        auto c1 = local_color * (1.0f - sphere_reflectivity);
+        auto c2 = reflected_color * sphere_reflectivity;
+
+        return c1 + c2;
     }
 
     std::tuple<int, float> find_closest_sphere_intersection(
@@ -158,23 +184,41 @@ private:
     }
 
 public:
-    RaytracingCanvas(const char* window_title, size_t width, size_t height)
-        :   CanvasBase(window_title, width, height) {
-
+    RaytracingCanvas(const char* window_title, size_t width, size_t height, unsigned int max_ray_recursion)
+        :   CanvasBase(window_title, width, height),
+            _camera_position{0.0f, 0.0f, 0.0f},
+            _camera_orientation(Mat::get_identity_matrix()),
+            _max_ray_recursion(max_ray_recursion) {
     }
 
-    void add_sphere(const Sphere& sphere, const Color& color, float specular){
+    void add_sphere(const Sphere& sphere, const Color& color, float specular, float reflectivity = 1){
         _spheres.push_back(sphere);
         _sphere_colors.push_back(color);
         _sphere_speculars.push_back(specular);
+        _sphere_reflectivities.push_back(reflectivity);
     }
 
     void add_light(const Light& light){
         _lights.push_back(light);
     }
 
+    std::vector<Sphere>& get_spheres(){
+        return _spheres;
+    }
+
+    std::vector<Light> get_lights(){
+        return _lights;
+    }
+
+    void set_camera_pos(const vec3f& camera_pos){
+        _camera_position = camera_pos;
+    }
+
+    void set_camera_orient(const Mat& camera_orientation){
+        _camera_orientation = camera_orientation;
+    }
+
     void draw() const{
-        vec3f camera_pos{0.0f, 0.0f, 0.0f};
         auto min_t = projection_plane_z;
 
         auto half_width = static_cast<int>(_width / 2);
@@ -184,9 +228,12 @@ public:
             for (auto y = -half_height; y < half_height; ++y){
                 vec2i ray_canvas_pos{x, y};
 
-                auto ray_dir = canvas_to_viewport(ray_canvas_pos);
+                //auto ray_dir = canvas_to_viewport(ray_canvas_pos);
 
-                auto c = trace_ray(camera_pos, ray_dir, min_t);
+                auto ray_dir_v4 = _camera_orientation * canvas_to_viewport(ray_canvas_pos);
+                auto ray_dir_v3 = vec3f{ray_dir_v4.x, ray_dir_v4.y, ray_dir_v4.z};
+
+                auto c = trace_ray(_camera_position, ray_dir_v3, min_t, _max_ray_recursion);
 
                 put_pixel(ray_canvas_pos, c);
             }

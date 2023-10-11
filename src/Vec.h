@@ -37,7 +37,7 @@ public:
     }
 
     friend vec3<T> operator*=( vec3<T>& a, const vec3<T>& b){
-        return a * b;
+        a = a * b;
     }
 
     friend vec3<T> operator*( T a, const vec3<T>& b){
@@ -49,7 +49,7 @@ public:
     }
 
     friend vec3<T> operator*=( T a, const vec3<T>& b){
-        return a*b;
+        a = a * b;
     }
 
     friend vec3<T> operator/(const vec3<T>& b, T a){

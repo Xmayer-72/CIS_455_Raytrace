@@ -6,9 +6,9 @@
 CC = g++
 SDL_CFLAGS := $(shell sdl2-config --cflags)
 SDL_LDFLAGS := $(shell sdl2-config --libs)
-CXXFLAGS = -std=c++17 -Wall -g
+CXXFLAGS = -std=c++17 -Wall -g -O3
 CFLAGS := $(SDL_CFLAGS) -O3
-LDFLAGS = $(SDL_LDFLAGS)
+LDFLAGS = $(SDL_LDFLAGS) -O3
 
 # Makefile settings - Can be customized.
 APPNAME = Raytrace
